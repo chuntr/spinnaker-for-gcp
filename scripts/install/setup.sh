@@ -159,6 +159,8 @@ else
   bold "Using existing bucket $BUCKET_URI..."
 fi
 
+MY_CLOUDSHELL_IP=$(dig +short myip.opendns.com @resolver1.opendns.com)
+
 if [ -z "$CLUSTER_EXISTS" ]; then
   bold "Creating GKE cluster $GKE_CLUSTER..."
 
@@ -169,7 +171,11 @@ if [ -z "$CLUSTER_EXISTS" ]; then
     --machine-type $GKE_MACHINE_TYPE --image-type "COS" --disk-type $GKE_DISK_TYPE \
     --disk-size $GKE_DISK_SIZE --service-account $SA_EMAIL --num-nodes $GKE_NUM_NODES \
     --enable-stackdriver-kubernetes --enable-autoupgrade --enable-autorepair \
-    --enable-ip-alias --addons HorizontalPodAutoscaling,HttpLoadBalancing
+    --enable-ip-alias --addons HorizontalPodAutoscaling,HttpLoadBalancing \
+    --master-ipv4-cidr 172.16.0.64/28 \
+    --enable-private-nodes \
+    --master-authorized-networks $MY_CLOUDSHELL_IP/32 \
+    --enable-master-authorized-networks
 
   # If the cluster already exists, we already retrieved credentials way up at the top of the script.
   bold "Retrieving credentials for GKE cluster $GKE_CLUSTER..."
@@ -264,7 +270,7 @@ job_ready() {
 
 job_ready hal-deploy-apply
 
-# Sourced to import $IP_ADDR. 
+# Sourced to import $IP_ADDR.
 # Used at the end of setup to check if installation is exposed via a secured endpoint.
 source ~/spinnaker-for-gcp/scripts/manage/update_landing_page.sh
 ~/spinnaker-for-gcp/scripts/manage/deploy_application_manifest.sh
